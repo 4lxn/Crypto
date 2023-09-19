@@ -1,7 +1,17 @@
-//In this practice I show you how to sum 2 points of a Eliptic Curve
-//Basically we have 2 situations, P, Q, where P != Q, and when P==Q
+//Elliptic Curve Point Adder and Multiplier
+//VERSION 1.1.0
+//by Alan Cervantes
+//Created on 2023-09-11
+//Last modified on 2023-09-18
 
-//VERSION 1.0
+//Bug Fixes: 
+//*An issue was identified in the mod function; the formula was incorrect, leading to occasional failures in calculating negative remainders.
+//*Some conditions were incorrectly declared, they have been fixed and now work correctly.
+
+//New functions added:
+//*It is now possible to multiply a generator point to obtain other points. 
+//*Additionally, the structure of the 'sum' function was changed, improving the overall program performance.
+
 
 #include <iostream>
 using namespace std;
@@ -9,7 +19,7 @@ using namespace std;
 
 //Calculates the modulus of positive and negative numbers :)
 int mod(int n, int m){
-    return (n<0) ? m - ((-1)*n%m) : n % m;
+    return (n<0) ? (m - (abs(n)%m))%m : n % m;
 }
 
 // Function for extended Euclidean Algorithm modified to obtain de multiplicative inverse
@@ -33,13 +43,70 @@ int inverse(int n, int m){
     return gcd(n, m, x, y);;
 }
 
-vector<pair<int,int>> sum(vector<pair<int,int>>P, bool equal, int m, int a){
+vector<pair<int,int>> sum(vector<pair<int,int>>P, int m, int a, bool showComments){
+    vector<pair<int,int>> SUM;
     int x = 0, y = 0, l = 0, l1 = 0, l2 = 0;
+    bool equal = false;
+    if(P[0].first == 0 && P[0].second == 0 && P[1].first == 0 && P[1].second == 0){ // 0 + 0
+        x = 0;
+        y = 0;
+        SUM.push_back(pair(x,y));
+
+        //IGNORE THIS
+        if (showComments){
+            cout << "\t\t0 + 0 = (" << SUM[0].first << "," <<  SUM[0].second << ")" << "\n";   
+        }
+        
+        return SUM;
+    }else if (P[0].first == 0 && P[0].second == 0 || P[1].first == 0 && P[1].second == 0){  // 0 or 0
+        //ESPECIAL CASE
+        if(P[0].first == 0){
+            x = P[1].first; 
+            y = P[1].second; 
+        }else{
+            x = P[0].first; 
+            y = P[0].second;
+        }
+        SUM.push_back(pair(x,y));
+
+        //IGNORE THIS
+        if (showComments){
+            if (P[0].first == 0 && P[0].second == 0){
+                cout << "\t\t0 + P = (" << SUM[0].first << "," <<  SUM[0].second << ")" << "\n";
+            }else{
+                cout << "\t\tP + 0 = (" << SUM[0].first << "," <<  SUM[0].second << ")" << "\n";
+
+            }
+        }
+
+        return SUM;
+    }else if (P[0].first == P[1].first && P[0].second == P[1].second){ // P = P
+        equal = true;
+        
+    }else{ // P != Q 
+        equal = false;
+    }
+    
     if(equal){
-        l = mod(mod(3 * pow(P[0].first,2) +a, m) * mod(inverse(2 * P[0].second, m),m) , m);
+        l = mod(mod(3 * pow(P[0].first,2) +a, m) * mod(inverse(2 * P[0].second, m),m) , m); //lambda
 
     }else{
-        l = (P[1].second - P[0].second) * (inverse(mod(P[1].first - P[0].first, m), m)); //labmbda //Before calculate the inverse we calculate  2y1 mod m
+        l1 = mod((P[1].second - P[0].second),m); 
+        //ESPECIAL CASE
+        if (P[1].first - P[0].first == 0){ //This means that the result will be the point at infinity.
+            x = 0; y = 0;
+            SUM.push_back(pair(x,y));
+                    //IGNORE THIS
+            if (showComments){
+                cout << "\t\tO = (" << SUM[0].first << "," <<  SUM[0].second << ")" << "\n";
+            }
+            return SUM;
+        }
+        
+        l2 = (inverse(mod(P[1].first - P[0].first, m), m));
+        l = mod(l1 * l2, m);    //lambda
+
+        
         // cout << "\n\n\t LAMBDA -> " << l << "\n"; //DEBUG LINE
 
     }
@@ -50,9 +117,41 @@ vector<pair<int,int>> sum(vector<pair<int,int>>P, bool equal, int m, int a){
         y = l * (P[0].first - x) - P[0].second;
         y = mod(y,m);
 
-    vector<pair<int,int>> SUM;
+
     SUM.push_back(pair(x,y));
+    if(showComments){
+        if( (P[0].first == P[1].first)&&(P[0].second == P[0].second)){
+            cout << "\t\t2P = (" << SUM[0].first << "," <<  SUM[0].second << ")" << "\n";
+        }else{
+            cout << "\t\tP + Q = (" << SUM[0].first << "," <<  SUM[0].second << ")" << "\n";
+        }
+    }
+
     return SUM;
+}
+
+vector<pair<int,int>> mul(vector<pair<int,int>>P, int m, int a, int n, bool showGs){
+    vector<pair<int,int>> MUL;
+    vector<pair<int,int>> Gs;
+
+    //showGs is a boolean variable that indicates if we want to show the Gs or not
+    //if showGs is true, we will show the Gs, if not, we will not show the Gs
+    //for that reason we add Gs to the vector Gs, and then we show it
+    Gs.push_back(pair(P[0].first, P[0].second));
+
+    for(int i = 0; i < n; i++){
+        MUL = sum(P, m, a, false);
+        P[0] = MUL[0];
+        Gs.push_back(pair(P[0].first, P[0].second));
+    }
+
+    if(showGs){
+        cout << "\n\n\t Gs -> \n";
+        for(int i = 0; i < Gs.size(); i++){
+            cout << "\t\t"<< i+1 << "G = (" << Gs[i].first << "," << Gs[i].second << ")\n";
+        }
+    }
+    return MUL;
 }
 
 int main(){
@@ -61,36 +160,44 @@ int main(){
     vector<pair<int,int>>ANS;
 
     //modulus and a (from the EC)
-    int m = 0, a = 0;
-
+    int option = 0;
+    int m = 0, a = 0, n = 1;
     int x1 = 0, x2 = 0, y1 = 0, y2 = 0;
 
-    cout << "Addition and multiplication operations over elliptic groups 💀" << "\n Introduce in one line: Modulus, a, x1, y1, x2 & y2. Thanks. \n";
-    cin >> m >> a >> x1 >> y1 >> x2 >> y2;
 
-    //We use mod function at this point for those negative numbers, so, we can obtain the positive form and work with that
-    x1 = mod(x1,m); y1 = mod(y1,m); x2 = mod(x2, m); y2 = mod(y2,m);
+    cout << "Addition and multiplication operations over elliptic groups 💀" << "\n";
+    cout << "Choose an option: \n";
+    cout << "\t1. Sum and Double of Points  \n";
+    cout << "\t2. Multiplication \n";
+    cout << "\t3. Exit \n";
+    cin >> option;
 
-    P.push_back(pair(x1,y1));
-    P.push_back(pair(x2,y2));
 
-    if ( (x1 == 0 && y1 == 0) || (x2 == 0 && y2 == 0)){
-        cout << "\nSince it's P + 0 = P. \n";
-        cout << "\tWhere: \n" << "\t\tP = (" << P[0].first << "," << P[0].second <<")\n";
-        (P[0].first == 0) ?  cout << "\t\tP + 0 = (" <<  P[1].first  << "," << P[1].second << ")\n" :  cout << "\t\tP + 0 = (" <<  P[0].first  << "," << P[0].second << ")\n";
-    }else if( (x1 == x2)&&(y1 == y2)){
-        cout << "\nSince it's the same point, we will perform the 2P operation. \n";
-        cout << "\tWhere: \n" << "\t\tP = (" << P[0].first << "," << P[0].second <<")\n";
-        ANS = sum(P, true, m, a);
-        cout << "\t\t2P = (" << ANS[0].first << "," <<  ANS[0].second << ")" << "\n";
-    }else{
-        cout << "\nSince isn't the same point, we will perform the P+Q operation. \n";
-        cout << "\tWhere: \n" << "\t\tP = (" << P[0].first << "," << P[0].second <<")\n";
-        cout << "\t\tQ = (" << P[1].first << "," << P[1].second <<")\n";
-        ANS = sum(P, false, m, a);
-        cout << "\t\tP + P = (" << ANS[0].first << "," <<  ANS[0].second << ")" << "\n";
-    
+    //Menu
+    switch (option){
+    case 1: //SUM
+        cout << "Introduce in one line: Modulus, a, x1, y1, x2 & y2. \n";
+        cin >> m >> a >> x1 >> y1 >> x2 >> y2;
+        P.push_back(pair(x1,y1));
+        P.push_back(pair(x2,y2));
+        ANS = sum(P, m, a, true);  // (POINTS, MODULUS, A, SHOW COMMENTS)
+        break;
+    case 2: //MUL
+        cout << "Introduce in one line: Modulus, a, x1, y1. \n";
+        cin >> m >> a >> x1 >> y1;
+        P.push_back(pair(x1,y1));
+        P.push_back(pair(x1,y1));
+        cout << "Introduce the number of times you want to multiply the point. \n";
+        cin >> n;
+        ANS = mul(P, m, a, n-1, true); // (POINTS, MODULUS, A, N, SHOW GS)
+        break;
+    case 3: //EXIT
+        cout << "Bye bye! 👋🏻 \n";
+        break;
+    default:
+        break;
     }
+
 
     return 0;
 }
