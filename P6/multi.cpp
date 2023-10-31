@@ -100,7 +100,8 @@ int main() {
             case 1:
                 cout << "Enter two numbers to multiply: ";
                 cin >> f >> g;
-                cout << "✅ The product is: " << gmul(f, g) << " bin: " <<  bitset<16>(p) << "\n";
+                p = gmul(f, g);
+                cout << "✅ The product is: " << p << " bin: " <<  bitset<16>(p) << "\n";
                 break;
             case 2:
                 generate_inverse_list();

@@ -40,7 +40,7 @@ int gcd(int a, int b, int& x, int& y) {
 int inverse(int n, int m){
     int x, y;
 
-    return gcd(n, m, x, y);;
+    return gcd(n, m, x, y);
 }
 
 vector<pair<int,int>> sum(vector<pair<int,int>>P, int m, int a, bool showComments){
@@ -89,7 +89,7 @@ vector<pair<int,int>> sum(vector<pair<int,int>>P, int m, int a, bool showComment
     
     if(equal){
         l = mod(mod(3 * pow(P[0].first,2) +a, m) * mod(inverse(2 * P[0].second, m),m) , m); //lambda
-
+        cout << "lambda = " << l << "\n";
     }else{
         l1 = mod((P[1].second - P[0].second),m); 
         //ESPECIAL CASE
@@ -130,19 +130,28 @@ vector<pair<int,int>> sum(vector<pair<int,int>>P, int m, int a, bool showComment
     return SUM;
 }
 
-vector<pair<int,int>> mul(vector<pair<int,int>>P, int m, int a, int n, bool showGs){
+vector<pair<int,int>> mul(vector<pair<int,int>>G, int m, int a, int n, bool showGs){
     vector<pair<int,int>> MUL;
     vector<pair<int,int>> Gs;
+    int countOrder = 1;
+    int auxCount = 0;
+    int order = 0;
 
     //showGs is a boolean variable that indicates if we want to show the Gs or not
     //if showGs is true, we will show the Gs, if not, we will not show the Gs
     //for that reason we add Gs to the vector Gs, and then we show it
-    Gs.push_back(pair(P[0].first, P[0].second));
+    Gs.push_back(pair(G[0].first, G[0].second));
 
     for(int i = 0; i < n; i++){
-        MUL = sum(P, m, a, false);
-        P[0] = MUL[0];
-        Gs.push_back(pair(P[0].first, P[0].second));
+        MUL = sum(G, m, a, false);
+        G[0] = MUL[0];
+        Gs.push_back(pair(G[0].first, G[0].second));
+        if(MUL[0].first == 0 && MUL[0].second == 0){
+            order = countOrder; 
+            countOrder = 0;
+        }else{
+            countOrder++;
+        }
     }
 
     if(showGs){
@@ -150,12 +159,44 @@ vector<pair<int,int>> mul(vector<pair<int,int>>P, int m, int a, int n, bool show
         for(int i = 0; i < Gs.size(); i++){
             cout << "\t\t"<< i+1 << "G = (" << Gs[i].first << "," << Gs[i].second << ")\n";
         }
+        // cout << "\t\t -> Order: " << countOrder << "\n";
+        // cout << "\t\t -> Order: " << order+1 << "\n";
+        cout << "\t\t -> Order: " << order+1 << "\n";
     }
+
     return MUL;
+}
+
+int sG(vector<pair<int,int>>G, vector<pair<int,int>>P, int m, int a, int n){
+    vector<pair<int,int>> MUL;
+    vector<pair<int,int>> Gs;
+    int countOrder = 1;
+    int auxCount = 0;
+    int s = 0;
+
+    Gs.push_back(pair(G[0].first, G[0].second));
+
+    for(int i = 0; i < n; i++){
+        if(G[0].first == P[0].first && G[0].second == P[0].second){
+            return s+1;
+        }
+        MUL = sum(G, m, a, false);
+        G[0] = MUL[0];
+        Gs.push_back(pair(G[0].first, G[0].second));
+        if(MUL[0].first == P[0].first && MUL[0].second == P[0].second){
+            s = countOrder; 
+            countOrder = 0;
+        }else{
+            countOrder++;
+        }
+    }
+
+    return s+1;
 }
 
 int main(){
     //Points vector
+    vector<pair<int,int>>G;
     vector<pair<int,int>>P;
     vector<pair<int,int>>ANS;
 
@@ -163,13 +204,15 @@ int main(){
     int option = 0;
     int m = 0, a = 0, n = 1;
     int x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+    int s = 0;
 
 
     cout << "Addition and multiplication operations over elliptic groups 💀" << "\n";
     cout << "Choose an option: \n";
     cout << "\t1. Sum and Double of Points  \n";
     cout << "\t2. Multiplication \n";
-    cout << "\t3. Exit \n";
+    cout << "\t3. sG = P \n";
+    cout << "\t4. Exit \n";
     cin >> option;
 
 
@@ -178,26 +221,37 @@ int main(){
     case 1: //SUM
         cout << "Introduce in one line: Modulus, a, x1, y1, x2 & y2. \n";
         cin >> m >> a >> x1 >> y1 >> x2 >> y2;
-        P.push_back(pair(x1,y1));
-        P.push_back(pair(x2,y2));
+        G.push_back(pair(x1,y1));
+        G.push_back(pair(x2,y2));
         ANS = sum(P, m, a, true);  // (POINTS, MODULUS, A, SHOW COMMENTS)
         break;
     case 2: //MUL
         cout << "Introduce in one line: Modulus, a, x1, y1. \n";
         cin >> m >> a >> x1 >> y1;
-        P.push_back(pair(x1,y1));
-        P.push_back(pair(x1,y1));
+        G.push_back(pair(x1,y1));
+        G.push_back(pair(x1,y1));
         cout << "Introduce the number of times you want to multiply the point. \n";
         cin >> n;
-        ANS = mul(P, m, a, n-1, true); // (POINTS, MODULUS, A, N, SHOW GS)
+        ANS = mul(G, m, a, n-1, true); // (POINTS, MODULUS, A, N, SHOW GS)
         break;
-    case 3: //EXIT
+    case 3: //sG = P 
+        cout << "Introduce in one line: Modulus, a, G -> (x1, y1), P -> (x2, y2), |E|. \n";
+        cin >> m >> a >> x1 >> y1 >> x2 >> y2 >> n;
+        G.push_back(pair(x1,y1));
+        G.push_back(pair(x1,y1));
+
+        P.push_back(pair(x2,y2));
+
+
+        s = sG(G, P, m, a, n-1); // (Generator, Point, A, N, SHOW GS)
+        cout << "\t\t s = " << s << "\n";
+        break;
+    case 4: //EXIT
         cout << "Bye bye! 👋🏻 \n";
         break;
     default:
         break;
     }
-
 
     return 0;
 }
